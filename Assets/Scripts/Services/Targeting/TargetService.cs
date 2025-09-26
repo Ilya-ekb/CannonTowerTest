@@ -4,11 +4,11 @@ using UnityEngine;
 
 namespace Services
 {
-    public class ClosestTargetService : ITargetService
+    public class TargetService : ITargetService
     {
         private readonly ITargetRegistry registry;
 
-        public ClosestTargetService(ITargetRegistry registry)
+        public TargetService(ITargetRegistry registry)
         {
             this.registry = registry;
         }

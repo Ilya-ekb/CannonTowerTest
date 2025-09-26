@@ -6,15 +6,17 @@ namespace Services
 {
     public class UpdateService : IUpdateService
     {
-        private readonly List<IUpdateable> updateablesToAdd = new List<IUpdateable>();
-        private readonly List<IUpdateable> fixedUpdateablesToAdd = new List<IUpdateable>();
-        private readonly List<IUpdateable> lateUpdateablesToAdd = new List<IUpdateable>();
-        private readonly List<IUpdateable> updateables = new List<IUpdateable>();
-        private readonly List<IUpdateable> fixedUpdateables = new List<IUpdateable>();
-        private readonly List<IUpdateable> lateUpdateables = new List<IUpdateable>();
-        private readonly List<IUpdateable> updateablesToRemove = new List<IUpdateable>();
-        private readonly List<IUpdateable> fixedUpdateablesToRemove = new List<IUpdateable>();
-        private readonly List<IUpdateable> lateUpdateablesToRemove = new List<IUpdateable>();
+        private readonly List<IUpdateable> updateablesToAdd         = new(initCapacity);
+        private readonly List<IUpdateable> fixedUpdateablesToAdd    = new(initCapacity);
+        private readonly List<IUpdateable> lateUpdateablesToAdd     = new(initCapacity);
+        private readonly List<IUpdateable> updateables              = new(initCapacity);
+        private readonly List<IUpdateable> fixedUpdateables         = new(initCapacity);
+        private readonly List<IUpdateable> lateUpdateables          = new(initCapacity);
+        private readonly List<IUpdateable> updateablesToRemove      = new(initCapacity);
+        private readonly List<IUpdateable> fixedUpdateablesToRemove = new(initCapacity);
+        private readonly List<IUpdateable> lateUpdateablesToRemove  = new(initCapacity);
+
+        private const int initCapacity = 256;
 
         public void RegisterToUpdate(IUpdateable updateable)
         {
@@ -49,51 +51,69 @@ namespace Services
         public void TickUpdate(float dt)
         {
             ApplyUpdates();
-            foreach (var updateable in updateables)
-                updateable.OnUpdate(dt);
+            for (var index = 0; index < updateables.Count; index++)
+                updateables[index].OnUpdate(dt);
         }
 
         public void TickFixedUpdate(float dt)
         {
             ApplyFixedUpdates();
-            foreach (var updateable in fixedUpdateables)
-                updateable.OnUpdate(dt);
+            for (var index = 0; index < fixedUpdateables.Count; index++)
+                fixedUpdateables[index].OnUpdate(dt);
         }
 
         public void TickLateUpdate(float dt)
         {
             ApplyLateUpdates();
-            foreach (var updateable in lateUpdateables)
-                updateable.OnUpdate(dt);
+            for (var index = 0; index < lateUpdateables.Count; index++)
+                lateUpdateables[index].OnUpdate(dt);
         }
 
         private void ApplyUpdates()
         {
-            foreach (var updateable in updateablesToAdd)
-                updateables.Add(updateable);
+            for (var index = 0; index < updateablesToAdd.Count; index++)
+            {
+                updateables.Add(updateablesToAdd[index]);
+            }
+
             updateablesToAdd.Clear();
-            foreach (var updateable in updateablesToRemove)
-                updateables.Remove(updateable);
+            for (var index = 0; index < updateablesToRemove.Count; index++)
+            {
+                updateables.Remove(updateablesToRemove[index]);
+            }
+
             updateablesToRemove.Clear();
         }
 
         private void ApplyFixedUpdates()
         {
-            foreach (var updateable in fixedUpdateablesToAdd)
-                fixedUpdateables.Add(updateable);
+            for (var index = 0; index < fixedUpdateablesToAdd.Count; index++)
+            {
+                fixedUpdateables.Add(fixedUpdateablesToAdd[index]);
+            }
+
             fixedUpdateablesToAdd.Clear();
-            foreach (var updateable in fixedUpdateablesToRemove)
-                fixedUpdateables.Remove(updateable);
+            for (var index = 0; index < fixedUpdateablesToRemove.Count; index++)
+            {
+                fixedUpdateables.Remove(fixedUpdateablesToRemove[index]);
+            }
+
             fixedUpdateablesToRemove.Clear();
         }
 
         private void ApplyLateUpdates()
         {
-            foreach (var updateable in lateUpdateablesToAdd)
-                lateUpdateables.Add(updateable);
+            for (var index = 0; index < lateUpdateablesToAdd.Count; index++)
+            {
+                lateUpdateables.Add(lateUpdateablesToAdd[index]);
+            }
+
             lateUpdateablesToAdd.Clear();
-            foreach (var updateable in lateUpdateablesToRemove)
-                lateUpdateables.Remove(updateable);
+            for (var index = 0; index < lateUpdateablesToRemove.Count; index++)
+            {
+                lateUpdateables.Remove(lateUpdateablesToRemove[index]);
+            }
+
             lateUpdateablesToRemove.Clear();
         }
     }

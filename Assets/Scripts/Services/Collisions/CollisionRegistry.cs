@@ -6,7 +6,7 @@ namespace Services.Collisions
 {
     public class CollisionRegistry : ICollisionRegistry
     {
-        private readonly Dictionary<Collider, IHitHandler> map = new Dictionary<Collider, IHitHandler>();
+        private readonly Dictionary<Collider, IHitHandler> map = new(1024);
 
         public void Register(IHitHandler hitHandler)
         {

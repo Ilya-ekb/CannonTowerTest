@@ -22,7 +22,7 @@ namespace Installers
         {
             Application.targetFrameRate = targetFrameRate;
             builder.Register<TargetRegistry>(Lifetime.Scoped).As<ITargetRegistry>();
-            builder.Register<ClosestTargetService>(Lifetime.Scoped).As<ITargetService>();
+            builder.Register<TargetService>(Lifetime.Scoped).As<ITargetService>();
             builder.Register<SpawnService>(Lifetime.Scoped).As<ISpawnService>();
             builder.Register<ProjectileLifecycleService>(Lifetime.Scoped).As<IProjectileLifecycleService>();
             builder.Register<CollisionRegistry>(Lifetime.Scoped).As<ICollisionRegistry>();
