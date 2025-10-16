@@ -1,3 +1,4 @@
+using Core;
 using Monsters;
 using Projectiles;
 using Services;
@@ -23,7 +24,6 @@ namespace Installers
             Application.targetFrameRate = targetFrameRate;
             builder.Register<TargetRegistry>(Lifetime.Scoped).As<ITargetRegistry>();
             builder.Register<TargetService>(Lifetime.Scoped).As<ITargetService>();
-            builder.Register<SpawnService>(Lifetime.Scoped).As<ISpawnService>();
             builder.Register<ProjectileLifecycleService>(Lifetime.Scoped).As<IProjectileLifecycleService>();
             builder.Register<CollisionRegistry>(Lifetime.Scoped).As<ICollisionRegistry>();
             builder.Register<HitService>(Lifetime.Scoped).As<IHitService>();
@@ -35,11 +35,12 @@ namespace Installers
                 poolService.RegisterPrefab(cannonProjectilePrefab);
                 poolService.RegisterPrefab(guidedProjectilePrefab);
                 poolService.RegisterPrefab(monsterPrefab);
+                var updates = FindObjectsByType<UpdateableBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+                foreach (var update in updates)
+                {
+                    resolver.InjectGameObject(update.gameObject);
+                }
             });
-
-            builder.RegisterComponentInHierarchy<CannonTower>();
-            builder.RegisterComponentInHierarchy<GuidedTower>();
-            builder.RegisterComponentInHierarchy<MonsterSpawner>();
         }
     }
 }

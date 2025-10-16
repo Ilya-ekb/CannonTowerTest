@@ -1,3 +1,4 @@
+using Configs;
 using Core;
 using Services;
 using Services.Interfaces;
@@ -8,21 +9,19 @@ namespace Monsters
 {
     public class MonsterSpawner : UpdateableBehaviour
     {
-        [SerializeField] private float spawnInterval = 5f;
+        [SerializeField] private MonsterSpawnConfig config;
         [SerializeField] private Transform moveToTarget;
         
-        private ISpawnService spawnService;
         private IPoolService poolService;
         private ICollisionRegistry collisionRegistry;
         private ICooldownService cooldownService;
         private ITargetRegistry targetRegistry;
 
         [Inject]
-        public void Construct(ISpawnService spawner, IPoolService pool, ICollisionRegistry collisionReg, ITargetRegistry targetReg)
+        public void Construct(IPoolService poolServ, ICollisionRegistry collisionReg, ITargetRegistry targetReg)
         {
-            spawnService = spawner;
-            poolService = pool;
-            cooldownService = new CooldownService(spawnInterval, true);
+            poolService = poolServ;
+            cooldownService = new CooldownService(config.spawnInterval, true);
             collisionRegistry = collisionReg;
             targetRegistry = targetReg;
         }
@@ -30,8 +29,9 @@ namespace Monsters
         public override void OnUpdate(float deltaTime)
         {
             if(!cooldownService.IsIntervalReached(deltaTime)) return;
-            var monster = spawnService.Spawn<Monster>(transform.position, transform.rotation);
-            monster.Init(moveToTarget);
+            cooldownService.SetInterval(config.spawnInterval);
+            var monster = poolService.Get<Monster>();
+            monster.Init(transform.position, transform.rotation, moveToTarget, config.monsterHp, config.monsterSpeed);
             collisionRegistry.Register(monster);
             targetRegistry.Register(monster);
             if(monster is IDroppable droppable)

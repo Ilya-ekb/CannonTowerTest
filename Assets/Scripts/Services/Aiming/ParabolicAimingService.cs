@@ -7,93 +7,100 @@ namespace Services.Aiming
 {
     public class ParabolicAimingService : IAimingService
     {
-        private const int maxIterations = 5;
-        private const float timeEpsilon = 0.05f;
-        public Vector3 GetAimDirection(Transform shootPoint, IShootTarget target,
-            float projectileSpeed, Vector3 gravity)
+        private const int maxIterations = 6;
+        private const float timeEpsilon = 0.01f;
+     
+        public Vector3 GetAimDirection(Transform shootPoint, IShootTarget target, float projectileSpeed, Vector3 gravity)
         {
-            if (target == null || !target.IsAlive)
+            if (target == null || !target.IsAlive || projectileSpeed <= 0f)
                 return shootPoint.forward * projectileSpeed;
 
             Vector3 origin = shootPoint.position;
             Vector3 targetPos = target.Position;
             Vector3 targetVel = target.Velocity;
 
-            if (TryGetPredictedLaunch(origin, targetPos, targetVel, gravity, projectileSpeed, out var launchVelocity))
+            // Try to find a valid ballistic velocity for interception
+            if (TrySolveBallisticIntercept(origin, targetPos, targetVel, gravity, projectileSpeed, out var launchVelocity))
                 return launchVelocity;
 
-            Vector3 toTarget = targetPos - origin;
-            float approxTime = toTarget.magnitude / Mathf.Max(0.01f, projectileSpeed);
-            Vector3 futurePos = targetPos + target.Velocity * approxTime;
-            return (futurePos - origin).normalized * projectileSpeed;
+            return Vector3.zero;
         }
-        
-        private bool TryGetPredictedLaunch(
+
+        /// <summary>
+        /// Iteratively solves for a valid ballistic interception velocity
+        /// accounting for both target motion and gravity.
+        /// </summary>
+        private bool TrySolveBallisticIntercept(
             Vector3 origin,
             Vector3 targetPos,
             Vector3 targetVel,
             Vector3 gravity,
-            float speed,
+            float projectileSpeed,
             out Vector3 launchVelocity)
         {
             launchVelocity = Vector3.zero;
 
-            float time = Vector3.Distance(origin, targetPos) / Mathf.Max(speed, 0.01f);
+            float time = (targetPos - origin).magnitude / Mathf.Max(projectileSpeed, 0.01f);
 
             for (int i = 0; i < maxIterations; i++)
             {
-                Vector3 predicted = targetPos + targetVel * time;
+                Vector3 predictedTarget = targetPos + targetVel * time;
 
-                if (!TryGetLaunchVelocity(origin, predicted, gravity, speed, out var candidate))
-                    return false;
+                // Try to compute a ballistic arc to reach that point
+                if (!TrySolveBallisticArc(origin, predictedTarget, gravity, projectileSpeed, out var candidate))
+                    continue;
 
-                float newTime = EstimateFlightTime(origin, predicted, candidate);
-
-                if (newTime <= 0 || float.IsInfinity(newTime))
+                // Re-estimate the projectile flight time for this new velocity
+                float newTime = EstimateFlightTime(origin, predictedTarget, candidate);
+                if (newTime <= 0f || float.IsInfinity(newTime))
                     return false;
 
                 launchVelocity = candidate;
 
+                // Check for convergence
                 if (Mathf.Abs(newTime - time) < timeEpsilon)
                     return true;
 
                 time = newTime;
             }
 
-            return launchVelocity != Vector3.zero;
+            return launchVelocity.sqrMagnitude > 0.001f;
         }
-        
-        private bool TryGetLaunchVelocity(Vector3 origin, Vector3 targetPos, Vector3 gravity, float speed, out Vector3 launchVelocity)
+
+        private bool TrySolveBallisticArc(Vector3 origin, Vector3 target, Vector3 gravity, float speed, out Vector3 launchVelocity)
         {
             launchVelocity = Vector3.zero;
 
-            Vector3 disp = targetPos - origin;
-            Vector3 dispXZ = new Vector3(disp.x, 0f, disp.z);
-            float dx = dispXZ.magnitude;
-            float dy = disp.y;
+            Vector3 diff = target - origin;
+            Vector3 diffXZ = new Vector3(diff.x, 0f, diff.z);
+            float dx = diffXZ.magnitude;
+            float dy = diff.y;
 
             float g = Mathf.Abs(gravity.y);
             float v2 = speed * speed;
-            float term = v2 * v2 - g * (g * dx * dx + 2 * dy * v2);
 
-            if (term < 0f) return false;
+            // Ballistic discriminant
+            float underRoot = v2 * v2 - g * (g * dx * dx + 2f * dy * v2);
+            if (underRoot < 0f)
+                return false; // no real solution (target unreachable with this speed)
 
-            float sqrt = Mathf.Sqrt(term);
+            float sqrt = Mathf.Sqrt(underRoot);
 
             float angleLow = Mathf.Atan2(v2 - sqrt, g * dx);
             float angleHigh = Mathf.Atan2(v2 + sqrt, g * dx);
 
-            Vector3 dirXZ = dispXZ.normalized;
+            Vector3 dirXZ = diffXZ.normalized;
 
             Vector3 vLow = dirXZ * (speed * Mathf.Cos(angleLow)) + Vector3.up * (speed * Mathf.Sin(angleLow));
-            float tLow = EstimateFlightTime(origin, targetPos, vLow);
+            float tLow = EstimateFlightTime(origin, target, vLow);
 
             Vector3 vHigh = dirXZ * (speed * Mathf.Cos(angleHigh)) + Vector3.up * (speed * Mathf.Sin(angleHigh));
-            float tHigh = EstimateFlightTime(origin, targetPos, vHigh);
+            float tHigh = EstimateFlightTime(origin, target, vHigh);
 
             bool lowValid = tLow > 0 && float.IsFinite(tLow);
             bool highValid = tHigh > 0 && float.IsFinite(tHigh);
 
+            // Prefer the shorter, lower arc (faster projectile)
             if (lowValid && (!highValid || tLow <= tHigh))
                 launchVelocity = vLow;
             else if (highValid)
@@ -104,12 +111,13 @@ namespace Services.Aiming
             return true;
         }
 
-        private float EstimateFlightTime(Vector3 origin, Vector3 target, Vector3 launchVel)
+        private float EstimateFlightTime(Vector3 origin, Vector3 target, Vector3 velocity)
         {
             Vector3 disp = target - origin;
             float dx = new Vector2(disp.x, disp.z).magnitude;
-            float horizSpeed = new Vector2(launchVel.x, launchVel.z).magnitude;
-            if (horizSpeed < 0.01f) return -1;
+            float horizSpeed = new Vector2(velocity.x, velocity.z).magnitude;
+            if (horizSpeed < 0.01f)
+                return -1f;
             return dx / horizSpeed;
         }
     }

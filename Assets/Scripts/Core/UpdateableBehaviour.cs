@@ -15,30 +15,21 @@ namespace Core
         public void Construct(IUpdateService us)
         {
             updateService = us;
-            OnEnable();
+            if(gameObject.activeSelf)
+                RegisterToUpdate();
         }
 
         protected virtual void OnEnable()
         {
-            if(updateService == null || isRegistered) return;
-            isRegistered = true;
-            switch (updateType)
-            {
-                case UpdateType.Update:
-                    updateService.RegisterToUpdate(this);
-                    break;
-                case UpdateType.FixedUpdate:
-                    updateService.RegisterToFixedUpdate(this);
-                    break;
-                case UpdateType.LateUpdate:
-                    updateService.RegisterToLateUpdate(this);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            RegisterToUpdate();
+        }
+        
+        protected virtual void OnDisable()
+        {
+            UnregisterFromUpdate();
         }
 
-        protected virtual void OnDisable()
+        private void UnregisterFromUpdate()
         {
             if (updateService == null || !isRegistered) return;
             isRegistered = false;
@@ -59,6 +50,26 @@ namespace Core
         }
 
         public abstract void OnUpdate(float deltaTime);
+        
+        private void RegisterToUpdate()
+        {
+            if(updateService == null || isRegistered) return;
+            isRegistered = true;
+            switch (updateType)
+            {
+                case UpdateType.Update:
+                    updateService.RegisterToUpdate(this);
+                    break;
+                case UpdateType.FixedUpdate:
+                    updateService.RegisterToFixedUpdate(this);
+                    break;
+                case UpdateType.LateUpdate:
+                    updateService.RegisterToLateUpdate(this);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
     }
 
     public enum UpdateType

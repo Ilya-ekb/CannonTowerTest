@@ -153,9 +153,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   updateType: 0
-  speed: 3
-  hp: 20
-  maxHp: 20
 --- !u!114 &8488423372651395377
 MonoBehaviour:
   m_ObjectHideFlags: 0

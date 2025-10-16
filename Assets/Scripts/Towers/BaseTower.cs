@@ -10,19 +10,25 @@ namespace Towers
     public abstract class BaseTower<TProjectile> : UpdateableBehaviour where TProjectile : class, IProjectile
     {
         [SerializeField] protected Transform shootPoint;
-        [SerializeField] protected float muzzleOffset = 1f;
         [SerializeField] protected TowerConfig config;
 
         protected Vector3 launchVelocity;
 
         private IProjectileLifecycleService projectileLifecycle;
-        private ICooldownService shootingService;
+        private ITargetService targetService;
+        private ICooldownService reloadCooldown;
+
+        protected IShootTarget target;
+        private bool isReloaded = false;
+        private bool useGravity = false;
 
         [Inject]
-        public void Construct(IProjectileLifecycleService projectileLife)
+        public void Construct(IProjectileLifecycleService projectileLife, ITargetService targetServ)
         {
             projectileLifecycle = projectileLife;
-            shootingService = new CooldownService(config.shootInterval, true);
+            targetService = targetServ;
+            reloadCooldown = new CooldownService(config.shootInterval, true);
+            useGravity = config.aimingType is AimingType.Parabolic;
             OnConstructed();
         }
 
@@ -32,17 +38,28 @@ namespace Towers
 
         public override void OnUpdate(float deltaTime)
         {
+            var shootPosition = shootPoint.position;
+            target = targetService.GetTarget(shootPosition, config.findTargetDistance);
             launchVelocity = GetLaunchVelocity(deltaTime);
-            if (!shootingService.IsIntervalReached(deltaTime)) return;
 
-            projectileLifecycle.LaunchProjectile<TProjectile>(
-                shootPoint.position + shootPoint.forward * muzzleOffset,
-                shootPoint.forward * launchVelocity.magnitude,
-                config.projectileDamage, config.gravity,
-                config.aimingType is AimingType.Parabolic
-            );
+            if (!isReloaded)
+                isReloaded = reloadCooldown.IsIntervalReached(deltaTime);
+            if (!isReloaded) return;
+
+            if (!CanFire()) return;
+            var shootVelocity = shootPoint.forward * config.projectileSpeed;
+            var grav = useGravity ? config.gravity : Vector3.zero;
+            var damage = config.projectileDamage;
+            projectileLifecycle.LaunchProjectile<TProjectile>(shootPosition, shootVelocity, damage, grav, useGravity);
+            reloadCooldown.SetInterval(config.shootInterval);
+            isReloaded = reloadCooldown.IsIntervalReached(deltaTime);
         }
 
         protected abstract Vector3 GetLaunchVelocity(float deltaTime);
+
+        protected virtual bool CanFire()
+        {
+            return target is not null;
+        }
     }
 }

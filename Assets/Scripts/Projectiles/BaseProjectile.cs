@@ -17,28 +17,23 @@ namespace Projectiles
         private float currentLifeTime;
 
 
-        public virtual void Init(Vector3 launchVelocity, int projectileDamage, Vector3 grav, bool useGravity = false)
+        public virtual void Init(Vector3 position, Quaternion rotation, Vector3 launchVelocity, int projectileDamage, Vector3 grav, bool useGravity = false)
         {
             Damage = projectileDamage;
             currentLifeTime = lifeTime;
+            transform.position = position;
+            transform.rotation = rotation;
             if (!mover)
                 mover = GetComponent<Mover>();
             if (mover)
-                mover.Setup(
-                    launchVelocity.magnitude,
-                    launchVelocity.normalized,
-                    transform.position, 
-                    transform.rotation, grav,
-                    useGravity);
+                mover.Setup(launchVelocity.magnitude, launchVelocity.normalized, position, rotation, grav, useGravity);
         }
 
         public override void OnUpdate(float deltaTime)
         {
             currentLifeTime -= deltaTime;
             if (currentLifeTime <= 0f)
-            {
                 Drop();
-            }
         }
 
         protected virtual void Drop()

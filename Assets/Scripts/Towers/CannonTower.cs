@@ -2,21 +2,20 @@ using Projectiles;
 using Services.Aiming;
 using Services.Interfaces;
 using UnityEngine;
-using VContainer;
 
 namespace Towers
 {
     public class CannonTower : BaseTower<CannonProjectile>
     {
+        [SerializeField] private float minAimToleranceIdDegrees = 1.5f;
+        [SerializeField] private float maxAimToleranceIdDegrees = 5f;
         [SerializeField] private Turret turret;
 
-        private ITargetService targetService;
         private IAimingService aimingService;
 
-        [Inject]
-        public void ConstructCannon(ITargetService targetServ)
+        protected override void OnConstructed()
         {
-            targetService = targetServ;
+            base.OnConstructed();
             aimingService = AimingFactory.Create(config);
         }
 
@@ -28,15 +27,34 @@ namespace Towers
 
         protected override Vector3 GetLaunchVelocity(float deltaTime)
         {
-            var target = targetService.GetTarget(shootPoint.position, config.findTargetDistance);
-
-            if (target is not null)
+            if (base.CanFire())
                 return aimingService.GetAimDirection(shootPoint,
                     target,
                     config.projectileSpeed,
                     config.gravity);
 
             return shootPoint.forward * config.projectileSpeed;
+        }
+
+        protected override bool CanFire()
+        {
+            if (target is null) return false;
+            
+            // Normalized direction where we want to aim (from aiming service)
+            Vector3 desiredDir = launchVelocity.normalized;
+            Vector3 currentDir = shootPoint.forward;
+
+            // Calculate angular difference in degrees
+            float angleError = Vector3.Angle(currentDir, desiredDir);
+
+            // Define tolerance (e.g., 2°–5° depending on rotation speed and projectile speed)
+            float allowedError = Mathf.Lerp(minAimToleranceIdDegrees, maxAimToleranceIdDegrees,
+                target.Velocity.magnitude / config.projectileSpeed);
+
+            bool aligned = angleError <= allowedError;
+            bool inRange = Vector3.Distance(target.Position, shootPoint.position) <= config.findTargetDistance;
+
+            return aligned && inRange;
         }
     }
 }

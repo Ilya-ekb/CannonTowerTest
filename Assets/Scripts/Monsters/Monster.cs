@@ -14,30 +14,29 @@ namespace Monsters
         public bool IsAlive => hp > 0;
         public Collider HitCollider { get; private set; }
 
-        [SerializeField] private float speed = 2;
-        [SerializeField] private int hp = 20;
-        [SerializeField] private int maxHp = 20;
+        private int hp;
 
         private Mover mover;
         private Transform moveToTarget;
 
         private const float reachTargetThreshold = 0.2f;
 
-
-        public void Init(Transform target)
+        public void Init(Vector3 position, Quaternion rotation, Transform target, int healthPoints, float speed)
         {
+            hp = healthPoints;
             moveToTarget = target;
+            transform.position = position;
+            transform.rotation = rotation;
             var dir = (target.position - transform.position).normalized;
             if (!mover)
                 mover = GetComponent<RigidbodyMover>();
             if (!HitCollider)
                 HitCollider = GetComponentInChildren<Collider>();
-            mover.Setup(speed, dir, transform.position, transform.rotation, Vector3.zero);
+            mover.Setup(speed, dir, position, rotation);
         }
 
         public void OnTakeFromPool()
         {
-            hp = maxHp;
             gameObject.SetActive(true);
         }
 

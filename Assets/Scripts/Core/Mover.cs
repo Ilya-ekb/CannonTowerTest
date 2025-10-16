@@ -18,7 +18,7 @@ namespace Core
             Vector3 dir,
             Vector3 startPosition,
             Quaternion startRotation,
-            Vector3 grav,
+            Vector3 grav = default,
             bool useGrav = false)
         {
             moveSpeed = speed;
