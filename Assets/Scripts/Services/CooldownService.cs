@@ -1,31 +1,23 @@
-using Services.Interfaces;
+using UnityEngine;
 
-namespace Services
+/// <summary>
+/// Simple reusable cooldown timer.
+/// </summary>
+[System.Serializable]
+public class Cooldown
 {
-    public class CooldownService : ICooldownService
+    private readonly float interval;
+    private float timer;
+
+    public Cooldown(float interval)
     {
-        private float lastShotTime;
-
-        private float cooldown;
-
-        public CooldownService(float cooldown, bool reachOnStart = false)
-        {
-            this.cooldown = cooldown;
-            if(reachOnStart)
-                lastShotTime = cooldown;
-        }
-
-        public void SetInterval(float interval)
-        {
-            cooldown = interval;
-        }
-
-        public bool IsIntervalReached(float step)
-        {
-            lastShotTime += step;
-            if (lastShotTime < cooldown) return false;
-            lastShotTime = 0;
-            return true;
-        }
+        this.interval = interval;
+        timer = interval;
     }
+
+    public bool Ready => timer >= interval;
+
+    public void Reset() => timer = 0f;
+
+    public void Update() => timer += Time.deltaTime;
 }

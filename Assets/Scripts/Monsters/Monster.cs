@@ -1,67 +1,72 @@
-using System;
-using Core;
-using Services.Interfaces;
+using Configs;
 using UnityEngine;
 
 namespace Monsters
 {
-    [RequireComponent(typeof(RigidbodyMover))]
-    public class Monster : UpdateableBehaviour, IPoolable, IShootTarget, IHitHandler, IDroppable
+    [RequireComponent(typeof(Rigidbody))]
+    public class Monster : MonoBehaviour
     {
-        public event Action<IDroppable> OnDropped;
-        public Vector3 Position => transform.position;
-        public Vector3 Velocity => mover.Velocity;
-        public bool IsAlive => hp > 0;
-        public Collider HitCollider { get; private set; }
-
-        private int hp;
-
-        private Mover mover;
-        private Transform moveToTarget;
-
-        private const float reachTargetThreshold = 0.2f;
-
-        public void Init(Vector3 position, Quaternion rotation, Transform target, int healthPoints, float speed)
+        public Vector3 Velocity => velocity;
+        
+        private Vector3 velocity = Vector3.zero;
+        private Vector3 targetPosition;
+        private Rigidbody rb;
+        private int health;
+        
+        public void Setup(MonsterSpawnConfig config, Transform target)
         {
-            hp = healthPoints;
-            moveToTarget = target;
-            transform.position = position;
-            transform.rotation = rotation;
-            var dir = (target.position - transform.position).normalized;
-            if (!mover)
-                mover = GetComponent<RigidbodyMover>();
-            if (!HitCollider)
-                HitCollider = GetComponentInChildren<Collider>();
-            mover.Setup(speed, dir, position, rotation);
+            health = config.monsterHp;
+            targetPosition = target.position;
+            this.velocity = (target.position - transform.position).normalized * config.monsterSpeed;
         }
 
-        public void OnTakeFromPool()
+        public void OnHit(Projectile projectile)
         {
-            gameObject.SetActive(true);
+            health -= projectile.Damage;
+            if (health <= 0f)
+            {
+                Debug.Log($"{name} destroyed by {projectile.name}");
+                Destroy(gameObject);
+            }
+            else
+            {
+                Debug.Log($"{name} hit! Remaining HP: {health}");
+            }
+        }
+        
+        public static Monster GetClosest(Vector3 origin, float radius)
+        {
+            Monster[] all = FindObjectsByType<Monster>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            Monster best = null;
+            float bestDist = radius;
+
+            foreach (var t in all)
+            {
+                float d = Vector3.Distance(origin, t.transform.position);
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    best = t;
+                }
+            }
+
+            return best;
         }
 
-        public void OnReturnToPool()
+        private void Awake()
         {
-            gameObject.SetActive(false);
+            rb = GetComponent<Rigidbody>();
+        }
+        
+        
+        private void FixedUpdate()
+        {
+            var newPosition = rb.position + velocity * Time.fixedDeltaTime;
+            rb.MovePosition(newPosition);
+            if(MathUtils.ApproximatelyEqual(transform.position.magnitude, targetPosition.magnitude))
+                Destroy(gameObject);
         }
 
-        public override void OnUpdate(float deltaTime)
-        {
-            if (!moveToTarget) return;
-            if (Vector3.Distance(transform.position, moveToTarget.position) < reachTargetThreshold)
-                Drop();
-        }
-
-        public void OnHit(int damage)
-        {
-            hp -= damage;
-            if (hp <= 0)
-                Drop();
-        }
-
-        private void Drop()
-        {
-            OnDropped?.Invoke(this);
-        }
     }
+
 }

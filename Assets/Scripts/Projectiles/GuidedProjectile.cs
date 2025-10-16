@@ -1,36 +1,28 @@
-using Core;
-using Services.Interfaces;
+using Monsters;
 using UnityEngine;
-using VContainer;
 
-namespace Projectiles
+public class GuidedProjectile : Projectile
 {
-    [RequireComponent(typeof(TransformMover))]
-    public class GuidedProjectile : BaseProjectile
+    [SerializeField] private float findTargetRadius = 3f;
+    private GameObject target;
+
+    public override void ResetState()
     {
-        [SerializeField] private float homingRadius = 10f;
-        private ITargetService targetService;
+        target = null;
+        base.ResetState();
+    }
 
-        [Inject]
-        public void Construct(ITargetService targetServ)
+    protected override void Update()
+    {
+        if (target)
         {
-            targetService = targetServ;
+            var dir = (target.transform.position - transform.position).normalized;
+            velocity = dir * velocity.magnitude;
         }
-        
-        public override void OnUpdate(float deltaTime)
+        else
         {
-            base.OnUpdate(deltaTime);
-
-            var target = FindClosestTarget();
-            if (target is null) return;
-            Vector3 toTarget = (target.Position - transform.position).normalized;
-            mover.SetDirection(toTarget);
+            target = Monster.GetClosest(transform.position, findTargetRadius)?.gameObject;
         }
-
-        private IShootTarget FindClosestTarget()
-        {
-            var closest = targetService.GetTarget(transform.position, homingRadius);
-            return closest;
-        }
+        base.Update();
     }
 }

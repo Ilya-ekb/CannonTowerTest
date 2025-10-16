@@ -1,26 +1,26 @@
-using TriInspector;
 using UnityEngine;
 
-namespace Configs
+[CreateAssetMenu(menuName = "Configs/TowerConfig")]
+public class TowerConfig : ScriptableObject
 {
-    [CreateAssetMenu(fileName = "TowerConfig", menuName = "Configs/TowerConfig")]
-    public class TowerConfig : ScriptableObject
-    {
-        public float shootInterval = 0.5f;
-        public float projectileSpeed = 10f;
-        public float findTargetDistance = 10f;
-        public float rotateSpeed = 10f;
-        public int projectileDamage = 10;
-        [ShowInEditMode] public AimingType aimingType;
-        [ShowInEditMode, ShowIf(nameof(aimingType), AimingType.Parabolic)]
-        public Vector3 gravity = Physics.gravity;
-    }
+    [Header("Targeting")] public float findTargetDistance = 25f;
 
-    public enum AimingType
-    {
-        Instant,
-        Smooth,
-        Predictive,
-        Parabolic,
-    }
+    [Header("Projectile")] public float projectileSpeed = 40f;
+    public float shootInterval = 1.25f;
+    public int projectileDamage = 10;
+    public float projectileLifeTime = 3f;
+    public Vector3 gravity = new(0, -9.81f, 0);
+
+    [Header("Aiming")] public float rotateSpeed = 180f;
+    public float aimThresholdDegrees = 3f;
+
+    [Header("Mode")] public AimingType aimingType = AimingType.None;
+    
+}
+
+public enum AimingType
+{
+    None,
+    Predictive,
+    Parabolic
 }

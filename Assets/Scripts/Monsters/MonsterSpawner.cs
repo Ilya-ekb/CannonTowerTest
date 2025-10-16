@@ -1,50 +1,32 @@
 using Configs;
-using Core;
-using Services;
-using Services.Interfaces;
 using UnityEngine;
-using VContainer;
 
 namespace Monsters
 {
-    public class MonsterSpawner : UpdateableBehaviour
+    public class MonsterSpawner : MonoBehaviour
     {
+        [SerializeField] private Monster prefab;
         [SerializeField] private MonsterSpawnConfig config;
-        [SerializeField] private Transform moveToTarget;
-        
-        private IPoolService poolService;
-        private ICollisionRegistry collisionRegistry;
-        private ICooldownService cooldownService;
-        private ITargetRegistry targetRegistry;
+        [SerializeField] private Transform monsterTarget;
+        private float timer;
 
-        [Inject]
-        public void Construct(IPoolService poolServ, ICollisionRegistry collisionReg, ITargetRegistry targetReg)
+        private void Start()
         {
-            poolService = poolServ;
-            cooldownService = new CooldownService(config.spawnInterval, true);
-            collisionRegistry = collisionReg;
-            targetRegistry = targetReg;
+            timer = config.spawnInterval;
         }
 
-        public override void OnUpdate(float deltaTime)
+        private void Update()
         {
-            if(!cooldownService.IsIntervalReached(deltaTime)) return;
-            cooldownService.SetInterval(config.spawnInterval);
-            var monster = poolService.Get<Monster>();
-            monster.Init(transform.position, transform.rotation, moveToTarget, config.monsterHp, config.monsterSpeed);
-            collisionRegistry.Register(monster);
-            targetRegistry.Register(monster);
-            if(monster is IDroppable droppable)
-                droppable.OnDropped += OnMonsterDropped;
-        }
+            timer += Time.deltaTime;
+            if (timer >= config.spawnInterval)
+            {
+                timer = 0f;
+                Vector3 pos = transform.position;
 
-        private void OnMonsterDropped(IDroppable droppable)
-        {
-            droppable.OnDropped -= OnMonsterDropped;
-            var monster = droppable as Monster;
-            collisionRegistry.Unregister(monster);
-            targetRegistry.Unregister(monster);
-            poolService.Return(monster);
+                var t = Instantiate(prefab, pos, Quaternion.identity);
+                t.name = $"Target_{Time.frameCount}";
+                t.GetComponent<Monster>().Setup(config, monsterTarget);
+            }
         }
     }
 }

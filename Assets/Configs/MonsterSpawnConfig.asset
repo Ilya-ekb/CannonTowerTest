@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b718d4efed434b21b01f232a318e186f, type: 3}
   m_Name: MonsterSpawnConfig
   m_EditorClassIdentifier: 
-  spawnInterval: 2
-  monsterSpeed: 5
+  spawnInterval: 5
+  monsterSpeed: 3
   monsterHp: 20

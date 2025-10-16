@@ -6,6 +6,7 @@ namespace Towers
     [Serializable]
     public class Turret
     {
+        public bool IsAlive => turretBase && barrelPivot;
         [SerializeField] private Transform turretBase;
         [SerializeField] private Transform barrelPivot;
 
@@ -38,6 +39,11 @@ namespace Towers
             );
 
             barrelPivot.localEulerAngles = new Vector3(newPitch, localEuler.y, localEuler.z);
+        }
+
+        public bool IsAimedAt(Vector3 launchVelocity, float maxAngle)
+        {
+            return Vector3.Angle(barrelPivot.forward, launchVelocity.normalized) <= maxAngle;
         }
 
         private float NormalizeAngle(float a)

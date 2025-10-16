@@ -12,10 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c417e066ad245c5b07afe33f4b002e2, type: 3}
   m_Name: CannonTower
   m_EditorClassIdentifier: 
-  shootInterval: 3
-  projectileSpeed: 10
   findTargetDistance: 20
-  rotateSpeed: 20
+  projectileSpeed: 5
+  shootInterval: 3
   projectileDamage: 10
-  aimingType: 3
+  projectileLifeTime: 3
   gravity: {x: 0, y: -2, z: 0}
+  rotateSpeed: 20
+  aimThresholdDegrees: 1
+  aimingType: 1
